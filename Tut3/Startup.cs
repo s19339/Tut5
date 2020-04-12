@@ -10,7 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
+using Tut3.Services;
 
 namespace Tut3
 {
@@ -26,7 +26,9 @@ namespace Tut3
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-           services.AddControllers();
+          
+            services.AddTransient<IStudentServiceDb, SqlServerStudentDbService>();
+            services.AddControllers();
         }
 
 

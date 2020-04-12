@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Data.SqlClient;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Tut3.DTOs.Requests;
 using Tut3.DTOs.Responses;
-using Tut3.Models;
 using Tut3.Services;
 
 namespace Tut3.Controllers
@@ -25,14 +19,65 @@ namespace Tut3.Controllers
             _service = service;
         }
 
-        [HttpPost]
+        [HttpPost(Name = "EnrollStudents")]
         public IActionResult EnrollStudent(EnrollStudentRequest request)
         {
             _service.EnrollStudent(request);
 
             var response = new EnrollStudentResponse();
-            return Ok(response);
+            using (var connection = new SqlConnection("Data Source=db-mssql;Initial Catalog=s19339;Integrated Security=True")) 
+            {
+                using (var command = new SqlCommand())
+                {
+                    command.Connection = connection;
+                    command.CommandText = "Select * From Studies Where Name = @Name";
+                    command.Parameters.AddWithValue("Name", request.Studies);
+                    connection.Open();
+
+                    var trans = connection.BeginTransaction();
+                    command.Transaction = trans;
+                    var dr = command.ExecuteReader();
+
+                    if (!dr.Read())
+                    {
+                        dr.Close();
+                        trans.Rollback();
+                        return BadRequest("The studies does not exist");
+                    }
+
+                    int idStudy = (int)dr["IdStudy"];
+
+                    dr.Close();
+
+                    command.CommandText = "Select * From Enrollment Where Semester = 2021 And IdStudy = @idStudy";
+                    int IdEnrollment = (int)dr["IdEnrollemnt"] + 1;
+                    command.Parameters.AddWithValue("IdStudy", idStudy);
+                    dr = command.ExecuteReader();
+
+                    if (dr.Read())
+                    {
+                        dr.Close();
+                        command.CommandText = "Select MAX(IdEnrollment) as 'IdEnrollment' From Enrollment";
+                        dr = command.ExecuteReader();
+                        dr.Close();
+
+                        command.CommandText = "Insert Into Enrollment(IdEnrollment, Semester, IdStudy) Values (@IdEnrollemnt, 2021, @IdStudy)";
+                        command.Parameters.AddWithValue("IdEnrollemnt", IdEnrollment);
+                        command.ExecuteNonQuery();
+                    }
+
+                    dr.Close();
+
+                    command.CommandText = "Select * From Student Where IndexNumber=@IndexNumber";
+                    command.Parameters.AddWithValue("IndexNumber", request.IndexNumber);
+                    dr = command.ExecuteReader();
+
+                }
+
+                return Ok();
+            }
         }
+
 
         [HttpPost("promote")]
         public IActionResult PromoteStudents()

@@ -6,7 +6,7 @@ using Tut3.DTOs.Requests;
 
 namespace Tut3.Services
 {
-    interface IStudentServiceDb
+   public interface IStudentServiceDb
     {
         void EnrollStudent(EnrollStudentRequest req);
         void PromoteStudents(int semester, string studies);
